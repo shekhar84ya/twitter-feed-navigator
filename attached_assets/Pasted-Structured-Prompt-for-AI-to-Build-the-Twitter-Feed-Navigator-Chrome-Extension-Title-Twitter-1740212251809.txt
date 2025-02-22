@@ -1,0 +1,120 @@
+Structured Prompt for AI to Build the Twitter Feed Navigator Chrome Extension
+Title:
+
+💡 "Twitter (X) Feed Navigator – Single-Post Browsing Experience"
+
+Objective:
+
+Develop a Chrome extension that transforms Twitter (X) browsing into a single-post navigation experience. Users can move between individual posts one at a time using "Next" and "Previous" buttons or arrow keys, with posts cached efficiently from the home feed.
+
+File Structure:
+
+text
+Wrap
+Copy
+📂 twitter-feed-navigator  
+│── 📄 manifest.json                # Extension metadata & permissions  
+│── 📄 background.js                # Manages caching & post navigation  
+│── 📄 content.js                   # Extracts post URLs from the home feed  
+│── 📄 navigation.js                # Handles loading next/previous posts  
+│── 📄 twitter-api.js               # Twitter-specific helper functions  
+│── 📄 popup.html                   # UI for enabling/disabling extension  
+│── 📄 popup.js                     # Controls popup functionality  
+│── 📄 styles.css                   # Styles for UI elements (match Twitter’s button style)  
+│── 📄 icons/                       # Folder for extension icons  
+│── 📄 service-worker.js (optional) # Handles background tasks efficiently  
+Description:
+
+Create a Chrome extension that enhances Twitter (X) browsing by allowing users to navigate posts one at a time instead of scrolling through the home feed. The extension extracts post URLs from https://x.com/home, caches them, and enables seamless navigation with "Next" and "Previous" buttons or left/right arrow keys.
+
+Features & Functionalities:
+
+First Post Auto-Opens:
+When the extension is enabled and the user visits https://x.com/home, the first post opens automatically, and the cache is filled.
+Next/Previous Navigation:
+Users can navigate posts using injected "Next" and "Previous" buttons (styled like Twitter buttons) or left/right arrow keys.
+Navigation remains functional even after interacting with a post (e.g., commenting), switching tabs, or switching applications.
+Post Caching:
+Extracts and caches valid post URLs from the home feed (https://x.com/home).
+Ignores analytics links and user profile links, focusing only on actual posts.
+Cache persists until the user refreshes or closes Twitter.
+Background Refresh:
+When the cache is empty, fetch new posts from the home feed in the background without forcing a page refresh, ensuring smooth user flow.
+Toggle Functionality:
+Popup UI includes a toggle button to enable/disable the extension.
+When disabled, no refresh occurs on the current page/post/tab.
+When enabled, refresh occurs only if the current page is x.com or twitter.com (not other sites).
+Button Styling:
+"Next" and "Previous" buttons match Twitter’s button design (e.g., color, shape, hover effects).
+Technical Implementation:
+
+manifest.json:
+Use Manifest V3.
+Permissions: "storage", "scripting", "activeTab", "webNavigation".
+"host_permissions": "https://x.com/*", "https://twitter.com/*".
+background.js:
+Stores post URLs in cache (using chrome.storage).
+Listens for navigation commands (button clicks or arrow keys).
+Fetches new posts when the cache is empty (via content.js).
+Resets cache when https://x.com/home is loaded or refreshed.
+content.js:
+Runs on https://x.com/home.
+Extracts valid post URLs (e.g., https://x.com/username/status/ID), ignoring analytics/profile links.
+Sends URLs
+3. content.js (Continued):
+
+Sends URLs to background.js for caching.
+Injects "Next" and "Previous" buttons into the Twitter UI on post pages (e.g., https://x.com/username/status/ID).
+Ensures buttons persist and function after user interactions (e.g., commenting) or tab/application switches.
+navigation.js:
+Loads the next or previous post from the cache when triggered.
+Redirects the browser to the corresponding post URL.
+Listens for left/right arrow key presses for navigation (binds globally but respects Twitter’s native shortcuts).
+twitter-api.js:
+Contains helper functions to:
+Fetch post URLs from the home feed programmatically (e.g., parsing DOM or simulating scroll).
+Filter out invalid links (analytics, profiles, etc.).
+popup.html / popup.js:
+popup.html: Simple UI with a toggle button (labeled "Enable/Disable").
+popup.js:
+Manages extension state (enabled/disabled) using chrome.storage.
+On enable: Triggers refresh and first-post loading if the current tab is x.com or twitter.com.
+On disable: Stops navigation and caching without refreshing the current page.
+styles.css:
+Styles "Next" and "Previous" buttons to match Twitter’s design (e.g., blue background, white text, rounded edges, hover effects).
+Ensures buttons are visually integrated into the Twitter UI (e.g., floated near the post content).
+service-worker.js (Optional):
+Enhances background efficiency for caching and fetching posts if needed.
+Expected User Flow:
+
+User opens https://x.com/home with the extension enabled.
+The first post automatically opens, and the cache fills with post URLs from the home feed.
+User clicks "Next" (or presses right arrow) to view the next post; "Previous" (or left arrow) to go back.
+After interacting with a post (e.g., commenting) or switching tabs/apps, navigation buttons/keys still work.
+When the cache is empty, new posts are fetched in the background without disrupting the current post.
+Toggling the extension off stops all functionality without refreshing the page; toggling it on refreshes only if on x.com/twitter.com.
+Development Requirements:
+
+Manifest V3 Compatibility: Ensure full compliance with Chrome’s latest extension framework.
+Efficient Caching: Avoid duplicate URLs in the cache; use chrome.storage for persistence.
+Error Prevention: Handle navigation edge cases (e.g., empty cache, invalid URLs) gracefully.
+Optimization: Use content scripts for DOM interaction and background scripts for caching/navigation logic.
+Smooth Cache Refill: When the cache empties, fetch new posts without forcing a page refresh.
+Additional Notes:
+
+Ensure navigation buttons persist and function regardless of user interaction with the post or tab/app switches.
+When the extension is enabled and the user visits x.com, auto-open the first post and fill the cache.
+When toggled off, avoid refreshing the current page/tab/post; when toggled on, refresh only if the page is x.com/twitter.com.
+Match Twitter’s button styling for a seamless look (e.g., blue #1DA1F2, rounded corners, hover effects).
+Suggestions for AI:
+
+Feel free to modify the file structure if it improves efficiency (e.g., merging navigation.js into background.js).
+Suggested additional features:
+Keyboard shortcut customization in the popup UI.
+Visual indicator (e.g., badge or popup label) showing the number of cached posts.
+Option to "pause" navigation and resume later without losing the cache.
+Deliverables:
+
+Complete source code for all files in the structure.
+Instructions for testing/loading the extension in Chrome.
+Suggestions for improvement or additional features (optional).
