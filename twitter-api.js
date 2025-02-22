@@ -2,18 +2,21 @@ const TwitterAPI = {
   extractPostUrls() {
     const urls = new Set();
 
-    // Only look for posts in the timeline or main content area
-    const timeline = document.querySelector('[data-testid="primaryColumn"]');
-    if (!timeline) return [];
+    // Find all article elements in the timeline
+    const articles = document.querySelectorAll('article');
 
-    const tweets = timeline.querySelectorAll('article');
-
-    tweets.forEach(tweet => {
+    articles.forEach(article => {
       try {
-        // Look for the timestamp link which contains the tweet URL
-        const timeLink = tweet.querySelector('time')?.closest('a');
-        if (timeLink && this.isValidPostUrl(timeLink.href)) {
-          urls.add(timeLink.href);
+        // Find the timestamp link which contains the post URL
+        const timeElement = article.querySelector('time');
+        if (!timeElement) return;
+
+        const linkElement = timeElement.closest('a');
+        if (!linkElement) return;
+
+        const url = linkElement.href;
+        if (this.isValidPostUrl(url)) {
+          urls.add(url);
         }
       } catch (e) {
         console.error('Error extracting tweet URL:', e);
@@ -26,16 +29,13 @@ const TwitterAPI = {
   isValidPostUrl(url) {
     try {
       const urlObj = new URL(url);
-      return (urlObj.hostname === 'twitter.com' || urlObj.hostname === 'x.com') 
-        && urlObj.pathname.match(/\/[^\/]+\/status\/\d+/)
-        && !urlObj.pathname.includes('/analytics');
+      const isTwitterDomain = urlObj.hostname === 'twitter.com' || urlObj.hostname === 'x.com';
+      const isStatusUrl = urlObj.pathname.match(/\/[^\/]+\/status\/\d+/);
+      const isNotAnalytics = !urlObj.pathname.includes('/analytics');
+
+      return isTwitterDomain && isStatusUrl && isNotAnalytics;
     } catch {
       return false;
     }
-  },
-
-  extractPostId(url) {
-    const match = url.match(/\/status\/(\d+)/);
-    return match ? match[1] : null;
   }
 };

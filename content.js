@@ -1,26 +1,71 @@
+// Global state
 let enabled = true;
+let observer = null;
 
-// Check extension state
+// Initialize extension state
 chrome.storage.local.get('enabled', (data) => {
   enabled = data.enabled ?? true;
+  if (enabled) {
+    initializeExtension();
+  }
 });
 
 // Listen for state changes
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.enabled) {
     enabled = changes.enabled.newValue;
+    if (enabled) {
+      initializeExtension();
+    } else {
+      cleanup();
+    }
   }
 });
 
-// Listen for messages from background script
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'FETCH_MORE_POSTS' && isHomePage()) {
-    cachePostsFromHome();
+function initializeExtension() {
+  // Wait for DOM to be ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupExtension);
+  } else {
+    setupExtension();
   }
-});
+}
 
-// Cache posts from home page
-function cachePostsFromHome() {
+function setupExtension() {
+  if (!enabled) return;
+
+  // Setup mutation observer for dynamic content
+  setupObserver();
+
+  // Initial setup based on current page
+  handlePageSetup();
+}
+
+function setupObserver() {
+  if (observer) {
+    observer.disconnect();
+  }
+
+  observer = new MutationObserver(() => {
+    handlePageSetup();
+  });
+
+  // Start observing once main content is available
+  const mainContent = document.querySelector('[data-testid="primaryColumn"]');
+  if (mainContent) {
+    observer.observe(mainContent, { childList: true, subtree: true });
+  }
+}
+
+function handlePageSetup() {
+  if (isHomePage()) {
+    extractAndCachePosts();
+  } else if (isPostPage()) {
+    injectNavigationButtons();
+  }
+}
+
+function extractAndCachePosts() {
   const posts = TwitterAPI.extractPostUrls();
   if (posts.length > 0) {
     chrome.runtime.sendMessage({
@@ -30,52 +75,36 @@ function cachePostsFromHome() {
   }
 }
 
-// Initialize navigation
-function initializeNavigation() {
-  if (!enabled) return;
-
-  if (isHomePage()) {
-    cachePostsFromHome();
-    // Periodically check for new posts
-    setInterval(cachePostsFromHome, 3000);
-  } else if (isPostPage()) {
-    tryInjectButtons();
-  }
-}
-
-// Create navigation buttons
-function createNavButton(text, handler) {
-  const button = document.createElement('button');
-  button.className = 'tfn-nav-button';
-  button.textContent = text;
-  button.addEventListener('click', handler);
-  return button;
-}
-
-// Try to inject buttons with retry mechanism
-function tryInjectButtons() {
-  const existingButtons = document.querySelector('.tfn-nav-buttons');
-  if (existingButtons) return;
+function injectNavigationButtons() {
+  // Remove existing buttons if any
+  const existing = document.querySelector('.tfn-nav-buttons');
+  if (existing) existing.remove();
 
   const container = document.createElement('div');
   container.className = 'tfn-nav-buttons';
-  container.appendChild(createNavButton('Previous', handlePrevious));
-  container.appendChild(createNavButton('Next', handleNext));
 
+  const prevButton = document.createElement('button');
+  prevButton.className = 'tfn-nav-button';
+  prevButton.textContent = 'Previous';
+  prevButton.onclick = navigateToPrevious;
+
+  const nextButton = document.createElement('button');
+  nextButton.className = 'tfn-nav-button';
+  nextButton.textContent = 'Next';
+  nextButton.onclick = navigateToNext;
+
+  container.appendChild(prevButton);
+  container.appendChild(nextButton);
+
+  // Try to inject buttons at the top of the main content
   const mainColumn = document.querySelector('[data-testid="primaryColumn"]');
   const article = mainColumn?.querySelector('article');
-
   if (article) {
-    try {
-      article.parentNode.insertBefore(container, article);
-    } catch (e) {
-      console.error('Failed to inject buttons:', e);
-    }
+    article.parentNode.insertBefore(container, article);
   }
 }
 
-// Navigation handlers
-function handleNext() {
+function navigateToNext() {
   chrome.runtime.sendMessage({ type: 'GET_NEXT_POST' }, (response) => {
     if (response?.url) {
       window.location.href = response.url;
@@ -83,7 +112,7 @@ function handleNext() {
   });
 }
 
-function handlePrevious() {
+function navigateToPrevious() {
   chrome.runtime.sendMessage({ type: 'GET_PREV_POST' }, (response) => {
     if (response?.url) {
       window.location.href = response.url;
@@ -96,13 +125,23 @@ document.addEventListener('keydown', (e) => {
   if (!enabled) return;
 
   if (e.key === 'ArrowRight') {
-    handleNext();
+    navigateToNext();
   } else if (e.key === 'ArrowLeft') {
-    handlePrevious();
+    navigateToPrevious();
   }
 });
 
-// Helper functions
+function cleanup() {
+  if (observer) {
+    observer.disconnect();
+    observer = null;
+  }
+  const buttons = document.querySelector('.tfn-nav-buttons');
+  if (buttons) {
+    buttons.remove();
+  }
+}
+
 function isHomePage() {
   return window.location.pathname === '/home';
 }
@@ -111,31 +150,13 @@ function isPostPage() {
   return window.location.pathname.includes('/status/');
 }
 
-// Initialize after Twitter's content has loaded
-let initAttempts = 0;
-const maxAttempts = 10;
-
-function waitForTwitterContent() {
-  if (!enabled || initAttempts >= maxAttempts) return;
-
-  const mainContent = document.querySelector('[data-testid="primaryColumn"]');
-  if (mainContent) {
-    initializeNavigation();
-    // Observe for dynamic content changes
-    new MutationObserver(() => {
-      if (isPostPage()) {
-        tryInjectButtons();
-      }
-    }).observe(mainContent, { childList: true, subtree: true });
-  } else {
-    initAttempts++;
-    setTimeout(waitForTwitterContent, 1000);
+// Listen for messages from background script
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'FETCH_MORE_POSTS' && isHomePage()) {
+    extractAndCachePosts();
   }
-}
+});
 
-// Start initialization after page load
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', waitForTwitterContent);
-} else {
-  waitForTwitterContent();
-}
+
+// Start initialization
+initializeExtension();

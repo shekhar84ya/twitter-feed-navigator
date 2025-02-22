@@ -21,7 +21,7 @@
       "matches": ["https://twitter.com/*", "https://x.com/*"],
       "js": ["twitter-api.js", "content.js"],
       "css": ["styles.css"],
-      "run_at": "document_idle"
+      "run_at": "document_start"
     }
   ],
   "action": {
