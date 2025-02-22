@@ -2,38 +2,27 @@ let enabled = true;
 
 // Check extension state
 chrome.storage.local.get('enabled', (data) => {
-  enabled = data.enabled;
-  if (enabled) {
-    console.log('Extension enabled, initializing...');
-    setTimeout(initializeNavigation, 1000); // Delay initialization to ensure page is loaded
-  }
+  enabled = data.enabled ?? true;
 });
 
 // Listen for state changes
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.enabled) {
     enabled = changes.enabled.newValue;
-    console.log('Extension state changed:', enabled);
-    if (enabled) {
-      setTimeout(initializeNavigation, 1000);
-    }
   }
 });
 
 // Listen for messages from background script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'FETCH_MORE_POSTS' && isHomePage()) {
-    console.log('Fetching more posts...');
     cachePostsFromHome();
   }
 });
 
-// Cache posts from home page continuously
+// Cache posts from home page
 function cachePostsFromHome() {
-  console.log('Attempting to cache posts from home');
   const posts = TwitterAPI.extractPostUrls();
   if (posts.length > 0) {
-    console.log('Found posts to cache:', posts.length);
     chrome.runtime.sendMessage({
       type: 'CACHE_POSTS',
       posts: posts
@@ -41,80 +30,20 @@ function cachePostsFromHome() {
   }
 }
 
-// Initialize navigation on home page
+// Initialize navigation
 function initializeNavigation() {
-  console.log('Initializing navigation on page:', window.location.pathname);
+  if (!enabled) return;
+
   if (isHomePage()) {
-    // Initial cache and periodic updates
     cachePostsFromHome();
-    // Check for new posts every 3 seconds
+    // Periodically check for new posts
     setInterval(cachePostsFromHome, 3000);
   } else if (isPostPage()) {
-    injectNavigationButtons();
+    tryInjectButtons();
   }
 }
 
-// Inject navigation buttons with retry mechanism and improved logging
-function injectNavigationButtons() {
-  console.log('Attempting to inject navigation buttons');
-  const inject = () => {
-    // Remove existing buttons if any
-    const existingButtons = document.querySelector('.tfn-nav-buttons');
-    if (existingButtons) {
-      existingButtons.remove();
-    }
-
-    const buttonContainer = document.createElement('div');
-    buttonContainer.className = 'tfn-nav-buttons';
-
-    const prevButton = createNavButton('Previous', handlePrevious);
-    const nextButton = createNavButton('Next', handleNext);
-
-    buttonContainer.appendChild(prevButton);
-    buttonContainer.appendChild(nextButton);
-
-    // Try multiple potential injection points with more specific selectors
-    const injectPoints = [
-      document.querySelector('article[data-testid="tweet"]'),
-      document.querySelector('[data-testid="tweet"]'),
-      document.querySelector('[data-testid="tweetText"]')?.closest('article'),
-      document.querySelector('[data-testid="cellInnerDiv"]')?.querySelector('article'),
-      document.querySelector('div[data-testid="primaryColumn"]')?.querySelector('article'),
-      // Try to find the main tweet container
-      Array.from(document.querySelectorAll('article')).find(art => 
-        art.querySelector('time') && art.querySelector('[data-testid="tweetText"]')
-      )
-    ].filter(Boolean);
-
-    console.log('Found potential injection points:', injectPoints.length);
-
-    for (const point of injectPoints) {
-      if (point) {
-        try {
-          point.parentNode.insertBefore(buttonContainer, point);
-          console.log('Successfully injected navigation buttons');
-          return true;
-        } catch (e) {
-          console.error('Failed to inject at point:', e);
-        }
-      }
-    }
-    console.log('Failed to find suitable injection point');
-    return false;
-  };
-
-  // Retry injection a few times if it fails
-  let attempts = 0;
-  const tryInject = () => {
-    if (!inject() && attempts < 5) {
-      attempts++;
-      console.log(`Injection attempt ${attempts} failed, retrying...`);
-      setTimeout(tryInject, 1000);
-    }
-  };
-  tryInject();
-}
-
+// Create navigation buttons
 function createNavButton(text, handler) {
   const button = document.createElement('button');
   button.className = 'tfn-nav-button';
@@ -123,10 +52,32 @@ function createNavButton(text, handler) {
   return button;
 }
 
+// Try to inject buttons with retry mechanism
+function tryInjectButtons() {
+  const existingButtons = document.querySelector('.tfn-nav-buttons');
+  if (existingButtons) return;
+
+  const container = document.createElement('div');
+  container.className = 'tfn-nav-buttons';
+  container.appendChild(createNavButton('Previous', handlePrevious));
+  container.appendChild(createNavButton('Next', handleNext));
+
+  const mainColumn = document.querySelector('[data-testid="primaryColumn"]');
+  const article = mainColumn?.querySelector('article');
+
+  if (article) {
+    try {
+      article.parentNode.insertBefore(container, article);
+    } catch (e) {
+      console.error('Failed to inject buttons:', e);
+    }
+  }
+}
+
 // Navigation handlers
 function handleNext() {
   chrome.runtime.sendMessage({ type: 'GET_NEXT_POST' }, (response) => {
-    if (response && response.url) {
+    if (response?.url) {
       window.location.href = response.url;
     }
   });
@@ -134,7 +85,7 @@ function handleNext() {
 
 function handlePrevious() {
   chrome.runtime.sendMessage({ type: 'GET_PREV_POST' }, (response) => {
-    if (response && response.url) {
+    if (response?.url) {
       window.location.href = response.url;
     }
   });
@@ -160,39 +111,31 @@ function isPostPage() {
   return window.location.pathname.includes('/status/');
 }
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  if (enabled) {
-    console.log('Extension enabled on DOMContentLoaded, initializing...');
-    setTimeout(initializeNavigation, 1000);
-  }
-});
+// Initialize after Twitter's content has loaded
+let initAttempts = 0;
+const maxAttempts = 10;
 
-// Re-inject buttons when Twitter updates its DOM
-const observer = new MutationObserver((mutations) => {
-  if (enabled && isPostPage()) {
-    injectNavigationButtons();
-  }
-});
+function waitForTwitterContent() {
+  if (!enabled || initAttempts >= maxAttempts) return;
 
-// Start observing once the main content area is available
-const startObserving = () => {
-  const mainContent = document.querySelector('main');
+  const mainContent = document.querySelector('[data-testid="primaryColumn"]');
   if (mainContent) {
-    observer.observe(mainContent, { childList: true, subtree: true });
-    console.log('Started observing DOM changes');
-  } else {
-    setTimeout(startObserving, 1000);
-  }
-};
-
-startObserving();
-
-// Automatically initialize on any navigation
-const initialCheck = setInterval(() => {
-  if (document.readyState === 'complete' && enabled) {
-    console.log('Page fully loaded, ensuring initialization...');
     initializeNavigation();
-    clearInterval(initialCheck);
+    // Observe for dynamic content changes
+    new MutationObserver(() => {
+      if (isPostPage()) {
+        tryInjectButtons();
+      }
+    }).observe(mainContent, { childList: true, subtree: true });
+  } else {
+    initAttempts++;
+    setTimeout(waitForTwitterContent, 1000);
   }
-}, 1000);
+}
+
+// Start initialization after page load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', waitForTwitterContent);
+} else {
+  waitForTwitterContent();
+}

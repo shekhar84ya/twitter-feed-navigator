@@ -1,35 +1,26 @@
 const TwitterAPI = {
   extractPostUrls() {
-    const tweets = document.querySelectorAll('article');
     const urls = new Set();
-    console.log('Found tweets:', tweets.length);
+
+    // Only look for posts in the timeline or main content area
+    const timeline = document.querySelector('[data-testid="primaryColumn"]');
+    if (!timeline) return [];
+
+    const tweets = timeline.querySelectorAll('article');
 
     tweets.forEach(tweet => {
-      // Try different methods to find the tweet URL
-      const timeLink = tweet.querySelector('time')?.closest('a');
-      const statusLink = tweet.querySelector('a[href*="/status/"]');
-      const cellInnerDiv = tweet.closest('[data-testid="cellInnerDiv"]')?.querySelector('a[href*="/status/"]');
-      const primaryColumn = tweet.closest('[data-testid="primaryColumn"]')?.querySelector('a[href*="/status/"]');
-
-      let url = null;
-      if (timeLink && this.isValidPostUrl(timeLink.href)) {
-        url = timeLink.href;
-      } else if (statusLink && this.isValidPostUrl(statusLink.href)) {
-        url = statusLink.href;
-      } else if (cellInnerDiv && this.isValidPostUrl(cellInnerDiv.href)) {
-        url = cellInnerDiv.href;
-      } else if (primaryColumn && this.isValidPostUrl(primaryColumn.href)) {
-        url = primaryColumn.href;
-      }
-
-      if (url) {
-        urls.add(url);
+      try {
+        // Look for the timestamp link which contains the tweet URL
+        const timeLink = tweet.querySelector('time')?.closest('a');
+        if (timeLink && this.isValidPostUrl(timeLink.href)) {
+          urls.add(timeLink.href);
+        }
+      } catch (e) {
+        console.error('Error extracting tweet URL:', e);
       }
     });
 
-    const extractedUrls = Array.from(urls);
-    console.log('Extracted valid post URLs:', extractedUrls.length);
-    return extractedUrls;
+    return Array.from(urls);
   },
 
   isValidPostUrl(url) {

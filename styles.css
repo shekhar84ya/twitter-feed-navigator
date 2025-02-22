@@ -1,13 +1,11 @@
 .tfn-nav-buttons {
   display: flex;
   gap: 12px;
-  padding: 16px;
+  padding: 8px 16px;
   justify-content: center;
-  position: sticky;
-  top: 0;
-  background-color: rgba(255, 255, 255, 0.95);
-  z-index: 1000;
-  border-bottom: 1px solid rgb(239, 243, 244);
+  background-color: var(--background-color, #fff);
+  border-bottom: 1px solid var(--border-color, rgb(239, 243, 244));
+  margin-bottom: 8px;
 }
 
 .tfn-nav-button {
@@ -20,7 +18,6 @@
   font-size: 15px;
   cursor: pointer;
   transition: background-color 0.2s;
-  min-width: 100px;
 }
 
 .tfn-nav-button:hover {
@@ -34,7 +31,7 @@
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .tfn-nav-buttons {
-    background-color: rgba(0, 0, 0, 0.95);
-    border-bottom-color: rgb(47, 51, 54);
+    --background-color: #000;
+    --border-color: rgb(47, 51, 54);
   }
 }

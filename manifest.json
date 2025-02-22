@@ -20,7 +20,8 @@
     {
       "matches": ["https://twitter.com/*", "https://x.com/*"],
       "js": ["twitter-api.js", "content.js"],
-      "css": ["styles.css"]
+      "css": ["styles.css"],
+      "run_at": "document_idle"
     }
   ],
   "action": {
