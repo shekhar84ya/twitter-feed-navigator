@@ -1,0 +1,27 @@
+.tfn-nav-buttons {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  justify-content: center;
+  border-bottom: 1px solid rgb(239, 243, 244);
+}
+
+.tfn-nav-button {
+  background-color: rgb(29, 161, 242);
+  color: white;
+  border: none;
+  border-radius: 9999px;
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.tfn-nav-button:hover {
+  background-color: rgb(26, 145, 218);
+}
+
+.tfn-nav-button:active {
+  background-color: rgb(23, 129, 194);
+}

@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Twitter Feed Navigator",
+  "version": "1.0",
+  "description": "Navigate Twitter posts one at a time with next/previous controls",
+  "permissions": [
+    "storage",
+    "scripting",
+    "activeTab",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "https://twitter.com/*",
+    "https://x.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://twitter.com/*", "https://x.com/*"],
+      "js": ["twitter-api.js", "content.js"],
+      "css": ["styles.css"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.svg",
+      "48": "icons/icon48.svg",
+      "128": "icons/icon128.svg"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.svg",
+    "48": "icons/icon48.svg",
+    "128": "icons/icon128.svg"
+  }
+}
