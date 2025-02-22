@@ -9,6 +9,7 @@ const TwitterAPI = {
       const timeLink = tweet.querySelector('time')?.closest('a');
       const statusLink = tweet.querySelector('a[href*="/status/"]');
       const cellInnerDiv = tweet.closest('[data-testid="cellInnerDiv"]')?.querySelector('a[href*="/status/"]');
+      const primaryColumn = tweet.closest('[data-testid="primaryColumn"]')?.querySelector('a[href*="/status/"]');
 
       let url = null;
       if (timeLink && this.isValidPostUrl(timeLink.href)) {
@@ -17,6 +18,8 @@ const TwitterAPI = {
         url = statusLink.href;
       } else if (cellInnerDiv && this.isValidPostUrl(cellInnerDiv.href)) {
         url = cellInnerDiv.href;
+      } else if (primaryColumn && this.isValidPostUrl(primaryColumn.href)) {
+        url = primaryColumn.href;
       }
 
       if (url) {
@@ -33,7 +36,8 @@ const TwitterAPI = {
     try {
       const urlObj = new URL(url);
       return (urlObj.hostname === 'twitter.com' || urlObj.hostname === 'x.com') 
-        && urlObj.pathname.match(/\/[^\/]+\/status\/\d+/);
+        && urlObj.pathname.match(/\/[^\/]+\/status\/\d+/)
+        && !urlObj.pathname.includes('/analytics');
     } catch {
       return false;
     }

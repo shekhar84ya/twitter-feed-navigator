@@ -1,8 +1,8 @@
 // Cache management
 let postCache = [];
 let currentPostIndex = -1;
-const LOW_CACHE_THRESHOLD = 5; // Trigger new post fetching when less than 5 posts remain ahead
-const MAX_CACHE_SIZE = 50; // Keep a reasonable number of posts in cache
+const LOW_CACHE_THRESHOLD = 3; // Trigger new post fetching when less than 3 posts remain ahead
+const MAX_CACHE_SIZE = 8; // Keep a reasonable number of posts in cache
 
 // Initialize extension state
 chrome.runtime.onInstalled.addListener(() => {

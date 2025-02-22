@@ -3,6 +3,10 @@
   gap: 12px;
   padding: 16px;
   justify-content: center;
+  position: sticky;
+  top: 0;
+  background-color: rgba(255, 255, 255, 0.95);
+  z-index: 1000;
   border-bottom: 1px solid rgb(239, 243, 244);
 }
 
@@ -16,6 +20,7 @@
   font-size: 15px;
   cursor: pointer;
   transition: background-color 0.2s;
+  min-width: 100px;
 }
 
 .tfn-nav-button:hover {
@@ -24,4 +29,12 @@
 
 .tfn-nav-button:active {
   background-color: rgb(23, 129, 194);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .tfn-nav-buttons {
+    background-color: rgba(0, 0, 0, 0.95);
+    border-bottom-color: rgb(47, 51, 54);
+  }
 }
